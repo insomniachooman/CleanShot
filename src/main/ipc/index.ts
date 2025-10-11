@@ -43,8 +43,52 @@ export function registerIpcHandlers(store: any) {
 
     const outputFolder = store.get('outputFolder') as string;
     const now = new Date();
-    const filename = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} at ${String(now.getHours()).padStart(2, '0')}.${String(now.getMinutes()).padStart(2, '0')}.${String(now.getSeconds()).padStart(2, '0')} ${options.kind} [${image.getSize().width}x${image.getSize().height}].${output.format}`;
-    const filePath = path.join(outputFolder, filename);
+     const filename = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} at ${String(now.getHours()).padStart(2, '0')}.${String(now.getMinutes()).padStart(2, '0')}.${String(now.getSeconds()).padStart(2, '0')} ${options.kind} [${image.getSize().width}x${image.getSize().height}].${output.format}`;
+
+     // If Save As requested, show Windows file picker and write to chosen path
+     if (options.saveAs) {
+       const filters = output.format === 'png'
+         ? [{ name: 'PNG Image', extensions: ['png'] }]
+         : [{ name: 'JPEG Image', extensions: ['jpg', 'jpeg'] }];
+       const defaultPath = path.join(outputFolder, filename);
+       const result = await dialog.showSaveDialog({
+         title: 'Save Capture',
+         defaultPath,
+         filters
+       });
+       if (result.canceled || !result.filePath) {
+         return {
+           width: image.getSize().width,
+           height: image.getSize().height,
+           dpiScale: 1,
+           cursorIncluded: !!options.includeCursor,
+           metadata: { displayId: options.displayId },
+           canceled: true
+         };
+       }
+       const targetPath = ensureExtension(result.filePath, output.format);
+       if (output.format === 'png') {
+         fs.writeFileSync(targetPath, composed.toPNG());
+       } else {
+         const quality = typeof output.quality === 'number' ? Math.round(output.quality * 100) : 92;
+         fs.writeFileSync(targetPath, composed.toJPEG(quality));
+       }
+       const autoCopy = store.get('autoCopyToClipboard') as boolean;
+       if (autoCopy) {
+         clipboard.writeImage(composed);
+       }
+       return {
+         filePath: targetPath,
+         width: image.getSize().width,
+         height: image.getSize().height,
+         dpiScale: 1,
+         cursorIncluded: !!options.includeCursor,
+         metadata: { displayId: options.displayId }
+       };
+     }
+
+     // Default behavior: save into configured output folder (unchanged)
+     const filePath = path.join(outputFolder, filename);
 
     if (output.format === 'png') {
       fs.writeFileSync(filePath, composed.toPNG());
@@ -85,5 +129,14 @@ export function registerIpcHandlers(store: any) {
     }
     return { error: 'No image provided' };
   });
+  
+  function ensureExtension(filePathValue: string, format: 'png' | 'jpeg'): string {
+    const lower = filePathValue.toLowerCase();
+    if (format === 'png') {
+      return lower.endsWith('.png') ? filePathValue : `${filePathValue}.png`;
+    }
+    // jpeg
+    return (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) ? filePathValue : `${filePathValue}.jpg`;
+  }
 }
     

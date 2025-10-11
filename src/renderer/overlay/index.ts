@@ -4,6 +4,7 @@ type Rect = { x: number; y: number; width: number; height: number };
 
 const params = new URLSearchParams(location.search);
 const mode = params.get('mode') || 'region';
+const displayId = params.get('displayId') || undefined;
 
 const overlay = document.getElementById('overlay-root') as HTMLDivElement;
 const mask = document.getElementById('mask') as HTMLDivElement;
@@ -253,15 +254,19 @@ async function requestCapture(action: string) {
     kind: 'region',
     includeCursor: false,
     freezeScreen: true,
+    displayId,
     region: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) },
-    output: { format: 'png', background: { mode: 'transparent' } }
+    output: { format: 'png', background: { mode: 'transparent' } },
+    saveAs: action === 'save'
   };
   const res = await (window as any).appApi.capture.request(opts);
   if (action === 'copy') {
     showToast('Copied to clipboard');
   }
   if (action === 'save') {
-    showToast(`Saved ${res.width}×${res.height}`);
+    if (res && !res.canceled) {
+      showToast(`Saved ${res.width}×${res.height}`);
+    }
   }
   if (action === 'pin') {
     await (window as any).appApi.pin.create({ imagePath: res.filePath });

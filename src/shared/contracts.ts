@@ -32,6 +32,8 @@ export interface CaptureOptions {
   windowHandle?: number;
   region?: Region;
   output?: OutputOptions;
+  // When true, main process will prompt "Save As" dialog and save to chosen path
+  saveAs?: boolean;
 }
 
 export interface CaptureResult {
@@ -42,6 +44,8 @@ export interface CaptureResult {
   dpiScale: number;
   cursorIncluded: boolean;
   metadata: Record<string, any>;
+  // Present when user cancels a "Save As" dialog
+  canceled?: boolean;
 }
 
 export interface UploadProvider {
