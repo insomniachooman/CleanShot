@@ -1,0 +1,70 @@
+{
+  "name": "cleanshotx-win",
+  "productName": "CleanShotX for Windows",
+  "version": "0.1.0",
+  "description": "A Windows CleanShot X–style screen capture tool in TypeScript",
+  "author": "Your Team",
+  "license": "MIT",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "clean": "rimraf dist",
+    "typecheck": "tsc --noEmit",
+    "copy:static": "npx --no-install cpx2 \"src/renderer/**/*.{html,css}\" dist/renderer -v && npx --no-install cpx2 \"assets/**/*\" dist/assets -v",
+    "build": "npm run clean && tsc -p tsconfig.json && npm run copy:static",
+    "start": "npm run build && electron .",
+    "watch:static": "concurrently -k \"npx --no-install cpx2 \\\"src/renderer/**/*.{html,css}\\\" dist/renderer -w -v\" \"npx --no-install cpx2 \\\"assets/**/*\\\" dist/assets -w -v\"",
+    "dev": "concurrently -k \"tsc -w -p tsconfig.json\" \"npm:watch:static\" \"wait-on dist/main/main.js && electron .\"",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "concurrently": "^8.2.2",
+    "cpx2": "^4.2.3",
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3",
+    "electron-reload": "^1.5.0",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.4.5",
+    "wait-on": "^8.0.0"
+  },
+  "config": {
+    "electron_mirror": "https://npmmirror.com/mirrors/electron/"
+  },
+  "build": {
+    "appId": "com.example.cleanshotxwin",
+    "productName": "CleanShotX for Windows",
+    "files": [
+      "dist/**/*",
+      "assets/**/*",
+      "LICENSE",
+      "README.md"
+    ],
+    "directories": {
+      "buildResources": "assets"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "${productName}-${version}-Setup.${ext}",
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://example.com/downloads/"
+      }
+    ]
+  }
+}

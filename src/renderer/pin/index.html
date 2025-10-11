@@ -1,0 +1,83 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Pin</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data:;">
+  <link rel="stylesheet" href="../../assets/theme.css">
+  <style>
+    html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+    .root { position: fixed; inset: 0; background: transparent; }
+
+    .img-frame {
+      position: absolute;
+      inset: 12px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      box-shadow: 0 22px 70px rgba(0,0,0,0.55);
+      overflow: hidden;
+      backdrop-filter: blur(2px) saturate(1.02);
+      border: 1px solid rgba(255,255,255,0.12);
+      background: linear-gradient(180deg, rgba(20,22,26,0.18), rgba(20,22,26,0.08));
+    }
+
+    img { max-width: 100%; max-height: 100%; user-select: none; }
+
+    .chrome {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      gap: 8px;
+      background: rgba(18,18,20,0.68);
+      border: 1px solid rgba(255,255,255,0.14);
+      padding: 6px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px) saturate(1.05);
+      box-shadow: 0 12px 42px rgba(0,0,0,0.45);
+    }
+
+    .btn {
+      background: rgba(255,255,255,0.06);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.18);
+      padding: 6px 10px;
+      border-radius: 10px;
+      font: 12px system-ui, Segoe UI, Arial, sans-serif;
+      transition: background-color 140ms ease, border-color 140ms ease, transform 80ms ease;
+    }
+    .btn:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.28); }
+    .btn:active { transform: translateY(1px); }
+  </style>
+</head>
+<body>
+  <div class="root">
+    <div class="img-frame">
+      <img id="img" draggable="false" />
+    </div>
+    <div class="chrome">
+      <button id="opacity" class="btn">Opacity</button>
+      <button id="clickthrough" class="btn">Click Through</button>
+    </div>
+  </div>
+  <script>
+    const p = new URLSearchParams(location.search);
+    const src = p.get('src');
+    const img = document.getElementById('img');
+    img.src = src || '';
+    const btnOp = document.getElementById('opacity');
+    const btnCt = document.getElementById('clickthrough');
+    let alpha = 1.0;
+    btnOp.addEventListener('click', () => {
+      alpha = alpha > 0.55 ? 0.55 : 1.0;
+      document.body.style.opacity = String(alpha);
+    });
+    btnCt.addEventListener('click', () => {
+      // Electron click-through toggled from main in future revision
+    });
+  </script>
+</body>
+</html>
+    

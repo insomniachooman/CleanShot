@@ -1,0 +1,140 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Preferences</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data:;">
+  <link rel="stylesheet" href="../../assets/theme.css">
+  <style>
+    :root {
+      --panel-bg: rgba(255,255,255,0.85);
+      --panel-bg-dark: rgba(24,26,31,0.72);
+    }
+    body { margin: 0; font: 14px Segoe UI, system-ui, Arial; color: var(--fg, #111); background: var(--app-bg); }
+    .wrap {
+      padding: 18px 24px;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 18px;
+      height: 100vh;
+      box-sizing: border-box;
+      background:
+        radial-gradient(1200px 1200px at 0% 0%, rgba(76,139,245,0.06), transparent 40%),
+        radial-gradient(900px 900px at 100% 100%, rgba(122,167,255,0.06), transparent 45%);
+    }
+    .nav {
+      border-right: 1px solid var(--surface-border);
+      padding-right: 6px;
+    }
+    .nav button {
+      display: block; width: 100%; text-align: left;
+      padding: 10px 12px; background: transparent; border: none; border-radius: 10px;
+      color: var(--fg-muted);
+      transition: background-color 140ms ease, color 140ms ease;
+      font-weight: 600;
+    }
+    .nav button:hover { background: var(--surface-hover); color: var(--fg); }
+    .nav button.is-active { background: var(--surface-active); color: var(--fg); border: 1px solid var(--surface-border); }
+
+    .panel {
+      padding: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 12px;
+    }
+    .panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px;
+    }
+    .title {
+      font-size: 18px; font-weight: 700; letter-spacing: 0.2px;
+    }
+
+    .card {
+      background: var(--panel-bg, rgba(255,255,255,0.85));
+      border: 1px solid var(--surface-border);
+      border-radius: 14px;
+      box-shadow: var(--elev-2);
+      padding: 16px 16px;
+      backdrop-filter: blur(10px) saturate(1.02);
+    }
+
+    .row { margin-bottom: 14px; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; color: var(--fg); }
+    input[type="text"], select {
+      width: 100%; padding: 10px 12px;
+      border: 1px solid var(--surface-border);
+      border-radius: 10px; background: var(--surface);
+      color: var(--fg);
+      outline: none; transition: border-color 120ms ease, box-shadow 120ms ease;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset;
+    }
+    input[type="text"]:focus, select:focus {
+      border-color: rgba(76,139,245,0.5);
+      box-shadow: 0 0 0 3px rgba(76,139,245,0.18);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root { --panel-bg: var(--panel-bg-dark); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="nav">
+      <button data-tab="general" class="is-active">General</button>
+      <button data-tab="capture">Capture</button>
+      <button data-tab="shortcuts">Shortcuts</button>
+      <button data-tab="output">Output</button>
+      <button data-tab="uploads">Uploads</button>
+      <button data-tab="advanced">Advanced</button>
+    </div>
+    <div class="panel" id="panel">
+      <div class="panel-header">
+        <div class="title">Preferences</div>
+      </div>
+      <div class="card">
+        <div class="row">
+          <label>Output Folder</label>
+          <input id="outputFolder" type="text" />
+        </div>
+        <div class="row">
+          <label>Auto Copy to Clipboard</label>
+          <select id="autoCopy">
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Default Format</label>
+          <select id="format">
+            <option value="png">PNG</option>
+            <option value="jpeg">JPEG</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    async function load() {
+      const s = await window.appApi.settings.get();
+      document.getElementById('outputFolder').value = s.outputFolder;
+      document.getElementById('autoCopy').value = String(s.autoCopyToClipboard);
+      document.getElementById('format').value = s.defaultFormat;
+    }
+    load();
+
+    // Lightweight visual active state toggle to complement improved nav
+    const nav = document.querySelector('.nav');
+    nav?.addEventListener('click', (e) => {
+      const t = e.target;
+      if (!(t instanceof HTMLButtonElement)) return;
+      nav.querySelectorAll('button').forEach(b => b.classList.remove('is-active'));
+      t.classList.add('is-active');
+      // Keeping content static for now to avoid functional changes
+    });
+  </script>
+</body>
+</html>
+    

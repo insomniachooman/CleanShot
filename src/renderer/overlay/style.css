@@ -1,0 +1,213 @@
+
+:root {
+  --hud-bg: rgba(18, 18, 20, 0.72);
+  --hud-fg: #f5f7fb;
+  --accent: #4c8bf5;
+  --mask: rgba(10, 12, 14, 0.36);
+  --border: rgba(255, 255, 255, 0.98);
+  --handle-fill: #ffffff;
+  --handle-stroke: rgba(0, 0, 0, 0.25);
+  --dims-bg: rgba(20, 22, 26, 0.86);
+  --dims-fg: #ffffff;
+  --toast-bg: rgba(24, 26, 31, 0.92);
+  --toast-fg: #f1f3f7;
+
+  --shadow-strong: 0 18px 60px rgba(0,0,0,0.55);
+  --shadow-med: 0 10px 40px rgba(0,0,0,0.45);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --outline: 0 0 0 2px rgba(76, 139, 245, 0.65);
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  cursor: crosshair;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: var(--font, system-ui, Segoe UI, Roboto, Arial, sans-serif);
+}
+
+.overlay-root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+.freeze-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  filter: saturate(0.98) contrast(1.02);
+}
+
+.mask {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(1200px 1200px at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,0.02), rgba(255,255,255,0.0) 30%, transparent 31%)
+    , var(--mask);
+  pointer-events: none;
+  transition: background 140ms ease-out;
+}
+
+.crosshair .v, .crosshair .h {
+  position: absolute;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.0), rgba(255,255,255,0.7) 35%, rgba(255,255,255,0.7) 65%, rgba(255,255,255,0.0));
+}
+.crosshair .v { width: 1px; height: 100vh; left: 50%; transform: translateX(-0.5px); }
+.crosshair .h { height: 1px; width: 100vw; top: 50%; transform: translateY(-0.5px); }
+
+.selection {
+  position: absolute;
+  box-sizing: border-box;
+  animation: sel-in 120ms ease-out;
+}
+@keyframes sel-in {
+  from { transform: scale(0.992); opacity: 0.85; filter: brightness(0.98); }
+  to { transform: scale(1); opacity: 1; filter: none; }
+}
+.selection-border {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--border);
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.18) inset,
+    0 0 0 9999px rgba(0,0,0,0.0);
+  border-radius: 8px;
+  backdrop-filter: saturate(1.05);
+}
+
+.handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--handle-fill);
+  border: 1px solid var(--handle-stroke);
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.35);
+}
+.handle.tl { top: -6px; left: -6px; cursor: nwse-resize; }
+.handle.tr { top: -6px; right: -6px; cursor: nesw-resize; }
+.handle.bl { bottom: -6px; left: -6px; cursor: nesw-resize; }
+.handle.br { bottom: -6px; right: -6px; cursor: nwse-resize; }
+.handle.tm { top: -6px; left: calc(50% - 6px); cursor: ns-resize; }
+.handle.bm { bottom: -6px; left: calc(50% - 6px); cursor: ns-resize; }
+.handle.ml { left: -6px; top: calc(50% - 6px); cursor: ew-resize; }
+.handle.mr { right: -6px; top: calc(50% - 6px); cursor: ew-resize; }
+
+.dims {
+  position: absolute;
+  bottom: -40px;
+  left: 0;
+  background: var(--dims-bg);
+  color: var(--dims-fg);
+  font: 12px/1.25 system-ui, Segoe UI, Arial, sans-serif;
+  padding: 7px 10px;
+  border-radius: 10px;
+  white-space: nowrap;
+  box-shadow: var(--shadow-med);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.magnifier {
+  position: absolute;
+  width: 144px;
+  height: 176px;
+  background: rgba(18,18,20,0.75);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 14px;
+  box-shadow: var(--shadow-strong);
+  backdrop-filter: blur(10px) saturate(1.05);
+  display: grid;
+  grid-template-rows: 1fr auto;
+  overflow: hidden;
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+.magnifier canvas {
+  width: 144px;
+  height: 144px;
+  image-rendering: pixelated;
+}
+.mag-readout {
+  color: var(--hud-fg);
+  font: 12px/1.2 system-ui, Segoe UI, Arial, sans-serif;
+  padding: 6px 8px;
+  text-align: center;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.hud {
+  position: absolute;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--hud-bg);
+  color: var(--hud-fg);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(12px) saturate(1.05);
+  box-shadow: var(--shadow-strong);
+  border: 1px solid rgba(255,255,255,0.14);
+  animation: hud-in 140ms ease-out;
+}
+@keyframes hud-in {
+  from { transform: translateY(6px); opacity: 0.0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.hud button {
+  background: rgba(255,255,255,0.06);
+  color: var(--hud-fg);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font: 12px system-ui, Segoe UI, Arial, sans-serif;
+  transition: background-color 140ms ease, border-color 140ms ease, transform 80ms ease;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset;
+}
+.hud button:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.28);
+}
+.hud button:active {
+  transform: translateY(1px);
+}
+.hud button[data-action="copy"],
+.hud button[data-action="save"] {
+  background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
+}
+.hud button[data-action="pin"] {
+  background: linear-gradient(180deg, rgba(76,139,245,0.18), rgba(76,139,245,0.12));
+  border-color: rgba(76,139,245,0.35);
+}
+.hud button:focus-visible {
+  outline: none;
+  box-shadow: var(--outline);
+}
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--toast-bg);
+  color: var(--toast-fg);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font: 13px system-ui, Segoe UI, Arial, sans-serif;
+  box-shadow: var(--shadow-strong);
+  border: 1px solid rgba(255,255,255,0.14);
+}
+
+.hidden {
+  display: none;
+}
+
+/* Utility: drive mask spotlight with CSS variables set by JS-less hover */
+.overlay-root:hover .mask {
+  --mx: 50%;
+  --my: 50%;
+}
+    

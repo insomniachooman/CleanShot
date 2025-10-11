@@ -1,0 +1,48 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Overlay</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data:; script-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+  <link rel="stylesheet" href="../../assets/theme.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div id="overlay-root" class="overlay-root">
+    <canvas id="freeze-canvas" class="freeze-canvas"></canvas>
+    <div id="mask" class="mask"></div>
+    <div id="crosshair" class="crosshair">
+      <div class="v"></div>
+      <div class="h"></div>
+    </div>
+    <div id="selection" class="selection hidden">
+      <div class="selection-border"></div>
+      <div class="handle tl" data-handle="tl"></div>
+      <div class="handle tr" data-handle="tr"></div>
+      <div class="handle bl" data-handle="bl"></div>
+      <div class="handle br" data-handle="br"></div>
+      <div class="handle tm" data-handle="tm"></div>
+      <div class="handle bm" data-handle="bm"></div>
+      <div class="handle ml" data-handle="ml"></div>
+      <div class="handle mr" data-handle="mr"></div>
+      <div class="dims" id="dims"></div>
+    </div>
+    <div id="magnifier" class="magnifier hidden">
+      <canvas id="mag-canvas" width="128" height="128"></canvas>
+      <div id="mag-readout" class="mag-readout">0,0 0x000000</div>
+    </div>
+    <div id="hud" class="hud hidden">
+      <button data-action="copy">Copy</button>
+      <button data-action="save">Save</button>
+      <button data-action="upload">Upload</button>
+      <button data-action="annotate">Annotate</button>
+      <button data-action="pin">Pin</button>
+      <button data-action="open-in">Open in</button>
+    </div>
+    <div id="toast" class="toast hidden"></div>
+  </div>
+  <script type="module" src="./index.js"></script>
+</body>
+</html>
+    
