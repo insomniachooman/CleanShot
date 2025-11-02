@@ -503,12 +503,40 @@ const handleSourceSelection = async (sourceId) => {
     return;
   }
 
+  const selectedSource =
+    state.sources.find((source) => source.id === sourceId) || null;
+  const isScreenSource = selectedSource?.type === "screen";
+  const statusLabel = isScreenSource ? "desktop wallpaper" : "window";
+
   state.isCapturing = true;
   togglePreviewLoading(true);
-  setStatus("Capturing window...", "neutral", 0);
+  setStatus(`Capturing ${statusLabel}...`, "neutral", 0);
 
   try {
-    const capture = await api.captureSource(sourceId);
+    let capture = null;
+
+    if (
+      isScreenSource &&
+      typeof api.captureDesktopWallpaper === "function"
+    ) {
+      try {
+        capture = await api.captureDesktopWallpaper({
+          sourceId,
+          displayId: selectedSource?.displayId || null,
+          name: selectedSource?.name || "",
+        });
+      } catch (wallpaperError) {
+        console.warn(
+          "Wallpaper-only capture failed, falling back to direct screen capture",
+          wallpaperError,
+        );
+      }
+    }
+
+    if (!capture) {
+      capture = await api.captureSource(sourceId);
+    }
+
     const image = await loadImageFromDataUrl(capture.dataURL);
 
     state.selectedSourceId = sourceId;
@@ -520,14 +548,15 @@ const handleSourceSelection = async (sourceId) => {
     }
 
     renderSourceList();
-    setStatus(
-      `Captured ${capture.width} × ${capture.height} from ${capture.name}.`,
-      "success",
-    );
+    const successMessage =
+      isScreenSource && capture?.wallpaperOnly
+        ? "Captured themed desktop background."
+        : `Captured ${capture.width} × ${capture.height} from ${capture.name}.`;
+    setStatus(successMessage, "success");
     scheduleRender();
   } catch (error) {
     console.error("Failed to capture source", error);
-    setStatus("Unable to capture that window. Try again.", "error", 6000);
+    setStatus("Unable to capture that source. Try again.", "error", 6000);
   } finally {
     togglePreviewLoading(false);
     state.isCapturing = false;

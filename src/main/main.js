@@ -226,6 +226,7 @@ const captureWallpaperForDisplay = async (displayId) => {
     height,
     dataURL,
     appIcon: null,
+    wallpaperOnly: true,
   };
 };
 
@@ -260,14 +261,30 @@ const listSources = async () => {
 };
 
 const captureSource = async (sourceId) => {
-  const thumbnailSize = computeThumbnailSize();
-  const rawSources = await desktopCapturer.getSources({
-    types: ["window", "screen"],
-    fetchWindowIcons: true,
-    thumbnailSize,
-  });
+  if (!sourceId) {
+    throw new Error("A source id is required to capture.");
+  }
 
-  const source = rawSources.find((item) => item.id === sourceId);
+  const thumbnailSize = computeThumbnailSize();
+  const captureTypes = ["window", "screen"];
+
+  const locateSource = async (types) => {
+    const sources = await desktopCapturer.getSources({
+      types,
+      fetchWindowIcons: types.includes("window"),
+      thumbnailSize,
+    });
+    return sources.find((item) => item.id === sourceId);
+  };
+
+  let source = await locateSource(captureTypes);
+
+  if (!source) {
+    const isWindowSource =
+      typeof sourceId === "string" && sourceId.startsWith("window:");
+    const retryTypes = [isWindowSource ? "window" : "screen"];
+    source = await locateSource(retryTypes);
+  }
 
   if (!source) {
     throw new Error(`Source with id ${sourceId} not found.`);
@@ -353,8 +370,15 @@ const registerIpcHandlers = () => {
       console.warn("Failed to retrieve wallpaper capture", error);
     }
 
-    if (sourceId) {
-      return captureSource(sourceId);
+    if (sourceId && String(sourceId).startsWith("screen:")) {
+      try {
+        return await captureSource(sourceId);
+      } catch (fallbackError) {
+        console.warn(
+          "Wallpaper capture fallback to desktopCapturer failed",
+          fallbackError,
+        );
+      }
     }
 
     throw new Error("Unable to capture desktop wallpaper.");
