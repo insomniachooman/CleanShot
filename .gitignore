@@ -52,3 +52,6 @@ temp/
 # Lock files (keep package-lock.json, ignore others)
 yarn.lock
 pnpm-lock.yaml
+# RepoCode cache directories (added automatically)
+tmp-cache/
+temp-cache/

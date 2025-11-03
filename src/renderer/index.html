@@ -17,6 +17,12 @@
           </div>
         </div>
         <div class="top-actions">
+          <button class="primary-btn" id="areaCaptureBtn">
+            <span>New Capture</span>
+          </button>
+          <button class="ghost-btn" id="importImageBtn">
+            <span>Import Image...</span>
+          </button>
           <button class="ghost-btn" id="refreshSourcesBtn">
             <span>Refresh</span>
           </button>
@@ -103,11 +109,60 @@
                 </button>
               </div>
 
-              <div class="background-controls">
-                <label class="color-picker" id="colorPickerField">
-                  <span>Tint</span>
-                  <input type="color" id="backgroundColorInput" value="#0f172a" />
-                </label>
+            <div
+              class="desktop-gallery-controls is-hidden"
+              id="desktopGalleryControls"
+            >
+              <button
+                class="gallery-nav-btn"
+                id="desktopPrevBtn"
+                type="button"
+                aria-label="Previous wallpaper"
+              >
+                <span aria-hidden="true">&larr;</span>
+              </button>
+              <div
+                class="desktop-gallery-label"
+                id="desktopGalleryLabel"
+                aria-live="polite"
+              >
+                Windows wallpaper
+              </div>
+              <button
+                class="gallery-nav-btn"
+                id="desktopNextBtn"
+                type="button"
+                aria-label="Next wallpaper"
+              >
+                <span aria-hidden="true">&rarr;</span>
+              </button>
+            </div>
+
+            <div
+              class="desktop-import-control is-hidden"
+              id="desktopImportControl"
+            >
+              <button
+                class="ghost-btn"
+                id="desktopImportBtn"
+                type="button"
+              >
+                Import backgrounds...
+              </button>
+              <input
+                type="file"
+                id="desktopImportInput"
+                accept="image/png,image/jpeg,image/webp,image/bmp,image/jfif"
+                multiple
+                hidden
+              />
+            </div>
+
+            <div class="background-controls">
+              <label class="color-picker" id="colorPickerField">
+                <span>Tint</span>
+                <input type="color" id="backgroundColorInput" value="#0f172a" />
+              </label>
 
                 <div class="upload-field" id="imagePickerField">
                   <div class="details">
@@ -121,6 +176,18 @@
                     accept="image/png,image/jpeg,image/webp"
                     hidden
                   />
+                </div>
+                <div
+                  class="saved-backgrounds is-hidden"
+                  id="savedBackgroundsSection"
+                >
+                  <strong>Saved backgrounds</strong>
+                  <div
+                    class="saved-backgrounds-list"
+                    id="savedBackgroundsList"
+                    role="listbox"
+                    aria-label="Saved custom backgrounds"
+                  ></div>
                 </div>
               </div>
             </section>

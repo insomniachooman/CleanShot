@@ -4,7 +4,7 @@
   "description": "CleanShot-inspired screenshot tool for Windows built with Electron.",
   "main": "src/main/main.js",
   "scripts": {
-    "start": "electron .",
+    "start": "electronmon .",
     "dev": "electron .",
     "lint": "echo \"No lint configured\"",
     "test": "echo \"No tests configured\""
@@ -12,8 +12,8 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "dependencies": {},
   "devDependencies": {
-    "electron": "^39.0.0"
+    "electron": "^39.0.0",
+    "electronmon": "^2.0.4"
   }
 }
