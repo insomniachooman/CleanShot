@@ -41,19 +41,19 @@ const analyzeCorner = (corner) => {
     const sampleWidth = Math.min(sampleSize, width - startX);
     const sampleHeight = Math.min(sampleSize, height - startY);
 
-if (sampleWidth <= 2 || sampleHeight <= 2) {
+    if (sampleWidth <= 2 || sampleHeight <= 2) {
       return 0;
     }
 
-const imageData = ctx.getImageData(startX, startY, sampleWidth, sampleHeight);
+    const imageData = ctx.getImageData(startX, startY, sampleWidth, sampleHeight);
     const { data, width: stride, height: patchHeight } = imageData;
     const limit = Math.min(maxInset, Math.min(stride, patchHeight) - 1);
 
-if (limit <= 1) {
+    if (limit <= 1) {
       return 0;
     }
 
-const mapCoords = (offset) => {
+    const mapCoords = (offset) => {
       switch (corner) {
         case "tl":
           return { x: Math.min(stride - 1, offset), y: Math.min(patchHeight - 1, offset) };
@@ -68,53 +68,60 @@ const mapCoords = (offset) => {
       }
     };
 
-const cornerCoords = mapCoords(0);
-    const cornerIndex = (cornerCoords.y * stride + cornerCoords.x) * 4;
-    const cornerAlpha = data[cornerIndex + 3];
-    const cornerBrightness =
-      (data[cornerIndex] + data[cornerIndex + 1] + data[cornerIndex + 2]) / 3;
+    let firstOpaque = null;
+    let leadingTransparent = 0;
 
-if (cornerAlpha < 200 || cornerBrightness > 48) {
-      return 0;
-    }
-
-const referenceOffset = Math.min(limit, Math.max(1, Math.floor(limit * 0.85)));
-    const referenceCoords = mapCoords(referenceOffset);
-    const referenceIndex = (referenceCoords.y * stride + referenceCoords.x) * 4;
-    const referenceAlpha = data[referenceIndex + 3];
-    const referenceBrightness =
-      (data[referenceIndex] + data[referenceIndex + 1] + data[referenceIndex + 2]) / 3;
-
-const baselineDelta =
-      Math.abs(data[cornerIndex] - data[referenceIndex]) +
-      Math.abs(data[cornerIndex + 1] - data[referenceIndex + 1]) +
-      Math.abs(data[cornerIndex + 2] - data[referenceIndex + 2]);
-
-if (referenceAlpha > 230 && baselineDelta < 36 && Math.abs(referenceBrightness - cornerBrightness) < 12) {
-      return 0;
-    }
-
-for (let offset = 1; offset <= limit; offset += 1) {
+    for (let offset = 0; offset <= limit; offset += 1) {
       const coords = mapCoords(offset);
       const index = (coords.y * stride + coords.x) * 4;
       const alpha = data[index + 3];
 
-if (alpha < 200) {
-        continue;
-      }
-
-const brightness = (data[index] + data[index + 1] + data[index + 2]) / 3;
-      const delta =
-        Math.abs(data[index] - data[cornerIndex]) +
-        Math.abs(data[index + 1] - data[cornerIndex + 1]) +
-        Math.abs(data[index + 2] - data[cornerIndex + 2]);
-
-if (delta > 42 || Math.abs(brightness - cornerBrightness) > 16) {
-        return offset;
+      if (!firstOpaque) {
+        if (alpha < 200) {
+          leadingTransparent += 1;
+          continue;
+        }
+        firstOpaque = {
+          offset,
+          index,
+          brightness:
+            (data[index] + data[index + 1] + data[index + 2]) / 3,
+        };
+        break;
       }
     }
 
-return limit;
+    if (!firstOpaque || leadingTransparent === 0) {
+      return 0;
+    }
+
+    // Confirm we actually have opaque content further inside so that we avoid trimming
+    // cases where the entire patch is transparent.
+    const interiorOffset = Math.min(
+      limit,
+      firstOpaque.offset + Math.max(2, Math.floor(limit * 0.5)),
+    );
+    const interiorCoords = mapCoords(interiorOffset);
+    const interiorIndex = (interiorCoords.y * stride + interiorCoords.x) * 4;
+    const interiorAlpha = data[interiorIndex + 3];
+
+    if (interiorAlpha < 200) {
+      return 0;
+    }
+
+    const interiorBrightness =
+      (data[interiorIndex] + data[interiorIndex + 1] + data[interiorIndex + 2]) / 3;
+
+    const delta =
+      Math.abs(data[firstOpaque.index] - data[interiorIndex]) +
+      Math.abs(data[firstOpaque.index + 1] - data[interiorIndex + 1]) +
+      Math.abs(data[firstOpaque.index + 2] - data[interiorIndex + 2]);
+
+    if (delta < 18 && Math.abs(interiorBrightness - firstOpaque.brightness) < 8) {
+      return 0;
+    }
+
+    return Math.max(0, leadingTransparent);
   };
 
 const samples = ["tl", "tr", "bl", "br"]
@@ -153,10 +160,11 @@ offctx.imageSmoothingEnabled = true;
 
 // Dynamically trim any OS-provided rounded-corner fringe before masking.
   const dpr = window.devicePixelRatio || 1;
-  const baseTrim = Math.max(1, Math.round(dpr));
   const detectedTrim = detectFringeInset(offctx, offscreen.width, offscreen.height, radius);
+  const minimumTrim = Math.max(1, Math.round(dpr));
+  const rawTrim = detectedTrim > 0 ? Math.max(minimumTrim, detectedTrim) : 0;
   const trim = Math.min(
-    Math.max(baseTrim, detectedTrim),
+    rawTrim,
     Math.floor(Math.min(offscreen.width, offscreen.height) / 2),
   );
 
