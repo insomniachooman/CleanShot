@@ -114,6 +114,25 @@
                 <input type="color" id="backgroundColorInput" value="#0f172a" />
               </label>
 
+              <div class="color-advanced" id="colorAdvanced">
+                <div class="mini-segment-control" role="radiogroup" aria-label="Color format">
+                  <button class="segment active" id="colorModeHex" data-mode="hex" role="radio" aria-checked="true">HEX</button>
+                  <button class="segment" id="colorModeRgb" data-mode="rgb" role="radio" aria-checked="false">RGB</button>
+                  <button class="segment" id="colorModeHsl" data-mode="hsl" role="radio" aria-checked="false">HSL</button>
+                </div>
+                <div class="color-text-input">
+                  <input
+                    type="text"
+                    id="colorValueInput"
+                    placeholder="#0f172a or rgb(15, 23, 42) or hsl(222, 64%, 11%)"
+                    inputmode="text"
+                    spellcheck="false"
+                    autocomplete="off"
+                    aria-label="Solid color value"
+                  />
+                </div>
+              </div>
+
               <div class="upload-field" id="imagePickerField">
                 <div class="details">
                   <strong>Custom artwork</strong>

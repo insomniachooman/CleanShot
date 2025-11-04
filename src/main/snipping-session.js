@@ -247,27 +247,21 @@ const createCaptureFromPayload = async (session, payload) => {
         ? imageSize.height / display.bounds.height
         : 1;
  
-    const scaledRect = {
-      x: Math.round(normalized.x * scaleX),
-      y: Math.round(normalized.y * scaleY),
-      width: Math.round(normalized.width * scaleX),
-      height: Math.round(normalized.height * scaleY),
-    };
- 
-    cropRect = {
-      x: clamp(scaledRect.x, 0, imageSize.width),
-      y: clamp(scaledRect.y, 0, imageSize.height),
-      width: clamp(
-        scaledRect.width,
-        1,
-        imageSize.width - clamp(scaledRect.x, 0, imageSize.width),
-      ),
-      height: clamp(
-        scaledRect.height,
-        1,
-        imageSize.height - clamp(scaledRect.y, 0, imageSize.height),
-      ),
-    };
+    // Compute scaled edges, then use floor/ceil to avoid cutting edges.
+    const left = normalized.x * scaleX;
+    const top = normalized.y * scaleY;
+    const right = (normalized.x + normalized.width) * scaleX;
+    const bottom = (normalized.y + normalized.height) * scaleY;
+  
+    const x = clamp(Math.floor(left), 0, imageSize.width);
+    const y = clamp(Math.floor(top), 0, imageSize.height);
+    const r = clamp(Math.ceil(right), 0, imageSize.width);
+    const b = clamp(Math.ceil(bottom), 0, imageSize.height);
+  
+    const width = clamp(r - x, 1, imageSize.width - x);
+    const height = clamp(b - y, 1, imageSize.height - y);
+  
+    cropRect = { x, y, width, height };
   }
 
   const finalImage =

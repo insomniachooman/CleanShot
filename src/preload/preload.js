@@ -28,6 +28,15 @@ contextBridge.exposeInMainWorld("cleanShot", {
   captureArea() {
     return safeInvoke("snipping:capture-area");
   },
+  startCursorOverlay(payload) {
+    return safeInvoke("cursor-overlay:start", payload);
+  },
+  updateCursorOverlay(payload) {
+    return safeInvoke("cursor-overlay:update", payload);
+  },
+  stopCursorOverlay() {
+    return safeInvoke("cursor-overlay:stop");
+  },
   saveImage(payload) {
     return safeInvoke("file:save-image", payload);
   },
@@ -36,6 +45,10 @@ contextBridge.exposeInMainWorld("cleanShot", {
   },
   openImage() {
     return safeInvoke("file:open-image");
+  },
+  // NEW: bridge for copying images to the system clipboard
+  copyImageToClipboard(payload) {
+    return safeInvoke("clipboard:write-image", payload);
   },
   on(event, listener) {
     ipcRenderer.on(event, listener);

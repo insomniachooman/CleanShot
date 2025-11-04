@@ -13,9 +13,23 @@ const {
   Menu,
 } = electron;
 const { beginSnippingSession } = require("./snipping-session");
+const { createCursorOverlayManager } = require("./cursor-overlay");
+const { parseSourceId } = require("./utils/ids");
 
 let mainWindow = undefined;
 let mainWindowCaptureMetadata = null;
+const cursorOverlayManager = createCursorOverlayManager({
+  onPointer(event) {
+    if (!mainWindow || mainWindow.isDestroyed?.()) {
+      return;
+    }
+    try {
+      mainWindow.webContents?.send("cursor-overlay:pointer", event);
+    } catch (_err) {
+      // Ignore dispatch failures when window is unloading.
+    }
+  },
+});
 
 const isWindows = process.platform === "win32";
 const isMac = process.platform === "darwin";
@@ -227,23 +241,6 @@ const computeThumbnailSize = () => {
   );
 
   return { width, height };
-};
-
-const parseSourceId = (sourceId) => {
-  if (typeof sourceId !== "string" || sourceId.trim() === "") {
-    return null;
-  }
-
-  const [type, handle, display] = sourceId.split(":");
-  if (!type || !handle) {
-    return null;
-  }
-
-  return {
-    type,
-    handle,
-    display: display ?? null,
-  };
 };
 
 const computeWindowHandleToken = (browserWindow) => {
@@ -966,6 +963,27 @@ const openImageFromDisk = async () => {
     dataURL: image.toDataURL(),
   };
 };
+ 
+// NEW: helper to write an image (dataURL) to the system clipboard
+const writeImageToClipboard = (dataURL) => {
+  try {
+    if (typeof dataURL !== "string" || !dataURL.startsWith("data:image")) {
+      return { success: false, reason: "invalid-payload" };
+    }
+
+    const image = nativeImage.createFromDataURL(dataURL);
+    if (!image || image.isEmpty()) {
+      return { success: false, reason: "empty-image" };
+    }
+
+    // Use electron.clipboard to avoid changing the import list above
+    electron.clipboard.writeImage(image);
+    return { success: true };
+  } catch (error) {
+    console.warn("Failed to write image to clipboard", error);
+    return { success: false, reason: "clipboard-write-failed" };
+  }
+};
 
 const registerIpcHandlers = () => {
   ipcMain.handle("sources:list", async () => {
@@ -1057,6 +1075,46 @@ const registerIpcHandlers = () => {
   ipcMain.handle("file:open-image", async () => {
     return openImageFromDisk();
   });
+ 
+  // NEW: IPC to write image dataURL to the system clipboard
+  ipcMain.handle("clipboard:write-image", async (_event, payload = {}) => {
+    try {
+      const dataURL =
+        typeof payload.dataURL === "string" ? payload.dataURL : "";
+      return writeImageToClipboard(dataURL);
+    } catch (error) {
+      console.warn("Clipboard write handler failed", error);
+      return { success: false, reason: "handler-failed" };
+    }
+  });
+ 
+  ipcMain.handle("cursor-overlay:start", async (_event, payload = {}) => {
+    try {
+      return await cursorOverlayManager.start(payload);
+    } catch (error) {
+      console.warn("Failed to start cursor overlay session", error);
+      return { success: false, reason: "startup-failed" };
+    }
+  });
+
+  ipcMain.handle("cursor-overlay:update", async (_event, payload = {}) => {
+    try {
+      return await cursorOverlayManager.update(payload);
+    } catch (error) {
+      console.warn("Failed to update cursor overlay session", error);
+      return { success: false, reason: "update-failed" };
+    }
+  });
+
+  ipcMain.handle("cursor-overlay:stop", async () => {
+    try {
+      cursorOverlayManager.stop();
+      return { success: true };
+    } catch (error) {
+      console.warn("Failed to stop cursor overlay session", error);
+      return { success: false, reason: "stop-failed" };
+    }
+  });
 };
 
 const createMainWindow = async () => {
@@ -1141,6 +1199,10 @@ electron.app.whenReady()
   .catch((err) => {
     console.error("Failed to initialize application", err);
   });
+
+electron.app.on("will-quit", () => {
+  cursorOverlayManager.destroy();
+});
 
 electron.app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {

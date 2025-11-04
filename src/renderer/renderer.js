@@ -1,4 +1,9 @@
 import { initializeRecordingController } from "./recording/controller.js";
+import {
+  getRoundedRectPath,
+  drawRoundedImage,
+  drawCoverImage,
+} from "./modules/canvas-utils.js";
 
 const api = window.cleanShot;
 
@@ -27,6 +32,7 @@ const state = {
   customBackgrounds: [],
   customBackgroundMap: new Map(),
   activeCustomBackgroundId: null,
+  colorInputMode: "hex",
 };
 
 const SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".bmp", ".webp", ".jfif"];
@@ -52,6 +58,11 @@ const elements = {
   ),
   colorPickerField: document.getElementById("colorPickerField"),
   backgroundColorInput: document.getElementById("backgroundColorInput"),
+  colorAdvanced: document.getElementById("colorAdvanced"),
+  colorModeHexBtn: document.getElementById("colorModeHex"),
+  colorModeRgbBtn: document.getElementById("colorModeRgb"),
+  colorModeHslBtn: document.getElementById("colorModeHsl"),
+  colorValueInput: document.getElementById("colorValueInput"),
   imagePickerField: document.getElementById("imagePickerField"),
   chooseImageBtn: document.getElementById("chooseImageBtn"),
   backgroundImageInput: document.getElementById("backgroundImageInput"),
@@ -367,6 +378,12 @@ const updateDesktopImportControl = () => {
 const updateBackgroundFields = () => {
   if (elements.colorPickerField) {
     elements.colorPickerField.classList.toggle(
+      "is-hidden",
+      state.backgroundMode !== "color",
+    );
+  }
+  if (elements.colorAdvanced) {
+    elements.colorAdvanced.classList.toggle(
       "is-hidden",
       state.backgroundMode !== "color",
     );
@@ -713,207 +730,201 @@ const loadImageFromDataUrl = (dataUrl) =>
     image.src = dataUrl;
   });
 
-const getRoundedRectPath = (ctx, x, y, width, height, radius) => {
-  const r = Math.min(radius, width / 2, height / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + width - r, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + r);
-  ctx.lineTo(x + width, y + height - r);
-  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
-  ctx.lineTo(x + r, y + height);
-  ctx.quadraticCurveTo(x, y + height, x, y + height - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
+// Color utils and advanced input syncing
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+const hexToRgb = (hex) => {
+  if (typeof hex !== "string") return null;
+  let v = hex.trim().toLowerCase();
+  if (v.startsWith("#")) v = v.slice(1);
+  if (v.length === 3) {
+    const r = v[0], g = v[1], b = v[2];
+    v = `${r}${r}${g}${g}${b}${b}`;
+  }
+  if (!/^[0-9a-f]{6}$/i.test(v)) return null;
+  const r = parseInt(v.slice(0, 2), 16);
+  const g = parseInt(v.slice(2, 4), 16);
+  const b = parseInt(v.slice(4, 6), 16);
+  return { r, g, b };
 };
 
-const detectFringeInset = (ctx, width, height, cornerRadius) => {
-  if (width <= 6 || height <= 6 || cornerRadius <= 0) {
-    return 0;
-  }
-
-  const maxInset = Math.min(
-    24,
-    Math.floor(Math.min(width, height) * 0.08),
-    Math.floor(cornerRadius),
-  );
-
-  if (maxInset <= 1) {
-    return 0;
-  }
-
-  const sampleSize = Math.min(Math.min(width, height), maxInset * 2 + 4);
-
-  const analyzeCorner = (corner) => {
-    const startX = corner === "tr" || corner === "br" ? Math.max(0, width - sampleSize) : 0;
-    const startY = corner === "bl" || corner === "br" ? Math.max(0, height - sampleSize) : 0;
-    const sampleWidth = Math.min(sampleSize, width - startX);
-    const sampleHeight = Math.min(sampleSize, height - startY);
-
-    if (sampleWidth <= 2 || sampleHeight <= 2) {
-      return 0;
-    }
-
-    const imageData = ctx.getImageData(startX, startY, sampleWidth, sampleHeight);
-    const { data, width: stride, height: patchHeight } = imageData;
-    const limit = Math.min(maxInset, Math.min(stride, patchHeight) - 1);
-
-    if (limit <= 1) {
-      return 0;
-    }
-
-    const mapCoords = (offset) => {
-      switch (corner) {
-        case "tl":
-          return {
-            x: Math.min(stride - 1, offset),
-            y: Math.min(patchHeight - 1, offset),
-          };
-        case "tr":
-          return {
-            x: Math.max(0, stride - 1 - offset),
-            y: Math.min(patchHeight - 1, offset),
-          };
-        case "bl":
-          return {
-            x: Math.min(stride - 1, offset),
-            y: Math.max(0, patchHeight - 1 - offset),
-          };
-        case "br":
-          return {
-            x: Math.max(0, stride - 1 - offset),
-            y: Math.max(0, patchHeight - 1 - offset),
-          };
-        default:
-          return { x: 0, y: 0 };
-      }
-    };
-
-    const cornerCoords = mapCoords(0);
-    const cornerIndex = (cornerCoords.y * stride + cornerCoords.x) * 4;
-    const cornerAlpha = data[cornerIndex + 3];
-    const cornerBrightness =
-      (data[cornerIndex] + data[cornerIndex + 1] + data[cornerIndex + 2]) / 3;
-
-    if (cornerAlpha < 200 || cornerBrightness > 48) {
-      return 0;
-    }
-
-    const referenceOffset = Math.min(limit, Math.max(1, Math.floor(limit * 0.85)));
-    const referenceCoords = mapCoords(referenceOffset);
-    const referenceIndex = (referenceCoords.y * stride + referenceCoords.x) * 4;
-    const referenceAlpha = data[referenceIndex + 3];
-    const referenceBrightness =
-      (data[referenceIndex] + data[referenceIndex + 1] + data[referenceIndex + 2]) / 3;
-
-    const baselineDelta =
-      Math.abs(data[cornerIndex] - data[referenceIndex]) +
-      Math.abs(data[cornerIndex + 1] - data[referenceIndex + 1]) +
-      Math.abs(data[cornerIndex + 2] - data[referenceIndex + 2]);
-
-    if (referenceAlpha > 230 && baselineDelta < 36 && Math.abs(referenceBrightness - cornerBrightness) < 12) {
-      return 0;
-    }
-
-    for (let offset = 1; offset <= limit; offset += 1) {
-      const coords = mapCoords(offset);
-      const index = (coords.y * stride + coords.x) * 4;
-      const alpha = data[index + 3];
-
-      if (alpha < 200) {
-        continue;
-      }
-
-      const brightness = (data[index] + data[index + 1] + data[index + 2]) / 3;
-      const delta =
-        Math.abs(data[index] - data[cornerIndex]) +
-        Math.abs(data[index + 1] - data[cornerIndex + 1]) +
-        Math.abs(data[index + 2] - data[cornerIndex + 2]);
-
-      if (delta > 42 || Math.abs(brightness - cornerBrightness) > 16) {
-        return offset;
-      }
-    }
-
-    return limit;
-  };
-
-  const samples = ["tl", "tr", "bl", "br"]
-    .map((corner) => analyzeCorner(corner))
-    .filter((value) => Number.isFinite(value) && value > 0);
-
-  return samples.length ? Math.max(...samples) : 0;
+const rgbToHex = ({ r, g, b }) => {
+  const toHex = (n) => clamp(Math.round(n), 0, 255).toString(16).padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 };
 
-const drawRoundedImage = (ctx, image, dx, dy, dWidth, dHeight, radius) => {
-  const fallback = () => {
-    ctx.save();
-    getRoundedRectPath(ctx, dx, dy, dWidth, dHeight, radius);
-    ctx.clip();
-    ctx.drawImage(image, dx, dy, dWidth, dHeight);
-    ctx.restore();
-  };
+const parseRgbString = (input) => {
+  if (typeof input !== "string") return null;
+  const m = input.trim().toLowerCase().match(/^rgba?\(\s*([+-]?\d{1,3})\s*,\s*([+-]?\d{1,3})\s*,\s*([+-]?\d{1,3})\s*(?:,\s*([0-9.]+)\s*)?\)$/i);
+  if (!m) return null;
+  const r = clamp(parseInt(m[1], 10), 0, 255);
+  const g = clamp(parseInt(m[2], 10), 0, 255);
+  const b = clamp(parseInt(m[3], 10), 0, 255);
+  return { r, g, b };
+};
 
-  const offscreen = document.createElement("canvas");
-  offscreen.width = Math.max(1, Math.round(dWidth));
-  offscreen.height = Math.max(1, Math.round(dHeight));
-  const offctx = offscreen.getContext("2d");
-  if (!offctx) {
-    fallback();
+const hslToRgb = (h, s, l) => {
+  const hh = ((h % 360) + 360) % 360;
+  const ss = clamp(s, 0, 1);
+  const ll = clamp(l, 0, 1);
+  const c = (1 - Math.abs(2 * ll - 1)) * ss;
+  const x = c * (1 - Math.abs(((hh / 60) % 2) - 1));
+  const m = ll - c / 2;
+  let r1 = 0, g1 = 0, b1 = 0;
+  if (hh < 60) [r1, g1, b1] = [c, x, 0];
+  else if (hh < 120) [r1, g1, b1] = [x, c, 0];
+  else if (hh < 180) [r1, g1, b1] = [0, c, x];
+  else if (hh < 240) [r1, g1, b1] = [0, x, c];
+  else if (hh < 300) [r1, g1, b1] = [x, 0, c];
+  else [r1, g1, b1] = [c, 0, x];
+  return {
+    r: Math.round((r1 + m) * 255),
+    g: Math.round((g1 + m) * 255),
+    b: Math.round((b1 + m) * 255),
+  };
+};
+
+const rgbToHsl = (r, g, b) => {
+  const rr = r / 255, gg = g / 255, bb = b / 255;
+  const max = Math.max(rr, gg, bb);
+  const min = Math.min(rr, gg, bb);
+  let h = 0, s = 0;
+  const l = (max + min) / 2;
+  const d = max - min;
+  if (d !== 0) {
+    s = d / (1 - Math.abs(2 * l - 1));
+    switch (max) {
+      case rr:
+        h = 60 * (((gg - bb) / d) % 6);
+        break;
+      case gg:
+        h = 60 * ((bb - rr) / d + 2);
+        break;
+      case bb:
+        h = 60 * ((rr - gg) / d + 4);
+        break;
+      default:
+        h = 0;
+    }
+  }
+  if (h < 0) h += 360;
+  return { h, s, l };
+};
+
+const parseHslString = (input) => {
+  if (typeof input !== "string") return null;
+  const m = input.trim().toLowerCase().match(/^hsla?\(\s*([+-]?\d+(?:\.\d+)?)\s*,\s*([+-]?\d+(?:\.\d+)?)%\s*,\s*([+-]?\d+(?:\.\d+)?)%\s*(?:,\s*([0-9.]+)\s*)?\)$/i);
+  if (!m) return null;
+  const h = parseFloat(m[1]);
+  const s = clamp(parseFloat(m[2]), 0, 100) / 100;
+  const l = clamp(parseFloat(m[3]), 0, 100) / 100;
+  return hslToRgb(h, s, l);
+};
+
+const parseColorString = (input) => {
+  if (typeof input !== "string" || !input.trim()) return null;
+  const v = input.trim();
+  return hexToRgb(v) || parseRgbString(v) || parseHslString(v);
+};
+
+const formatColorForMode = (mode, rgb) => {
+  const { r, g, b } = rgb;
+  if (mode === "rgb") {
+    return `rgb(${clamp(r, 0, 255)}, ${clamp(g, 0, 255)}, ${clamp(b, 0, 255)})`;
+  }
+  if (mode === "hsl") {
+    const hsl = rgbToHsl(r, g, b);
+    const h = Math.round(hsl.h);
+    const s = Math.round(hsl.s * 100);
+    const l = Math.round(hsl.l * 100);
+    return `hsl(${h}, ${s}%, ${l}%)`;
+  }
+  return rgbToHex({ r, g, b });
+};
+
+const updateColorModeControls = () => {
+  const mode = state.colorInputMode;
+  const map = [
+    { el: elements.colorModeHexBtn, mode: "hex" },
+    { el: elements.colorModeRgbBtn, mode: "rgb" },
+    { el: elements.colorModeHslBtn, mode: "hsl" },
+  ];
+  map.forEach(({ el, mode: m }) => {
+    if (!el) return;
+    const active = mode === m;
+    el.classList.toggle("active", active);
+    el.setAttribute("aria-checked", active ? "true" : "false");
+  });
+};
+
+const syncColorInputsFromState = () => {
+  const rgb = parseColorString(state.backgroundColor) || hexToRgb("#0f172a") || { r: 15, g: 23, b: 42 };
+  if (elements.colorValueInput) {
+    elements.colorValueInput.classList.remove("is-invalid");
+    elements.colorValueInput.setCustomValidity("");
+    elements.colorValueInput.value = formatColorForMode(state.colorInputMode, rgb);
+  }
+  if (elements.backgroundColorInput) {
+    elements.backgroundColorInput.value = rgbToHex(rgb);
+  }
+};
+
+const setColorInputMode = (mode) => {
+  if (!mode) {
     return;
   }
 
-  offctx.imageSmoothingEnabled = true;
-  offctx.imageSmoothingQuality = "high";
-  offctx.drawImage(image, 0, 0, dWidth, dHeight);
+  const rgb =
+    parseColorString(state.backgroundColor) ||
+    hexToRgb("#0f172a") || { r: 15, g: 23, b: 42 };
 
-  // Dynamically trim any OS-provided rounded-corner fringe before masking.
-  const dpr = window.devicePixelRatio || 1;
-  const baseTrim = Math.max(1, Math.round(dpr));
-  const detectedTrim = detectFringeInset(offctx, offscreen.width, offscreen.height, radius);
-  const trim = Math.min(
-    Math.max(baseTrim, detectedTrim),
-    Math.floor(Math.min(offscreen.width, offscreen.height) / 2),
-  );
+  // Update selected mode
+  state.colorInputMode = mode;
 
-  const maskX = trim;
-  const maskY = trim;
-  const maskW = Math.max(1, dWidth - trim * 2);
-  const maskH = Math.max(1, dHeight - trim * 2);
-  const maskRadius = Math.max(0, radius - Math.max(0, Math.round(trim * 0.5)));
+  // Reflect active state in UI
+  updateColorModeControls();
 
-  offctx.globalCompositeOperation = "destination-in";
-  getRoundedRectPath(offctx, maskX, maskY, maskW, maskH, maskRadius);
-  offctx.fillStyle = "#fff";
-  offctx.fill();
-  offctx.globalCompositeOperation = "source-over";
-
-  ctx.drawImage(offscreen, dx, dy);
-};
-
-const drawCoverImage = (ctx, image, width, height) => {
-  const imageRatio = image.width / image.height;
-  const canvasRatio = width / height;
-
-  let drawWidth = width;
-  let drawHeight = height;
-  let offsetX = 0;
-  let offsetY = 0;
-
-  if (imageRatio > canvasRatio) {
-    drawHeight = height;
-    drawWidth = imageRatio * drawHeight;
-    offsetX = (width - drawWidth) / 2;
-  } else {
-    drawWidth = width;
-    drawHeight = drawWidth / imageRatio;
-    offsetY = (height - drawHeight) / 2;
+  // Normalize inputs and state to the selected format
+  if (elements.colorValueInput) {
+    elements.colorValueInput.classList.remove("is-invalid");
+    elements.colorValueInput.setCustomValidity("");
+    elements.colorValueInput.value = formatColorForMode(state.colorInputMode, rgb);
   }
 
-  ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+  // Store background color string in the chosen representation
+  state.backgroundColor = formatColorForMode(state.colorInputMode, rgb);
+
+  // Keep the native color input in sync (always hex)
+  if (elements.backgroundColorInput) {
+    elements.backgroundColorInput.value = rgbToHex(rgb);
+  }
+
+  notifyVisualConfigChanged();
+  // Trigger a render so users see immediate feedback
+  scheduleRender();
 };
 
+const setBackgroundColorFromText = (text) => {
+  if (!elements.colorValueInput) return false;
+  const rgb = parseColorString(text);
+  if (!rgb) {
+    elements.colorValueInput.classList.add("is-invalid");
+    elements.colorValueInput.setCustomValidity("Invalid color");
+    return false;
+  }
+  elements.colorValueInput.classList.remove("is-invalid");
+  elements.colorValueInput.setCustomValidity("");
+  const cssValue = formatColorForMode(state.colorInputMode, rgb);
+  state.backgroundColor = cssValue;
+  if (elements.backgroundColorInput) {
+    elements.backgroundColorInput.value = rgbToHex(rgb);
+  }
+  notifyVisualConfigChanged();
+  scheduleRender();
+  return true;
+};
+
+ 
 const ensureDesktopBackground = async (targetDisplayId) => {
   const candidate =
     state.sources.find(
@@ -1347,6 +1358,7 @@ const handleSave = async () => {
     const captureName = getReadableSourceName(state.selectedCapture);
     const sanitizedName = captureName.replace(/[\\/:*?"<>|]/g, "").trim();
     const defaultPath = sanitizedName ? `${sanitizedName}.png` : undefined;
+
     const result = await api.saveImage({
       dataURL: state.lastRenderDataUrl,
       defaultPath,
@@ -1355,7 +1367,20 @@ const handleSave = async () => {
     if (result.canceled) {
       setStatus("Export cancelled.", "neutral");
     } else {
-      setStatus(`Saved to ${result.filePath}`, "success", 6000);
+      // Attempt to copy the exported image to the user's clipboard
+      let copied = false;
+      try {
+        const copyResult = await api.copyImageToClipboard({
+          dataURL: state.lastRenderDataUrl,
+        });
+        copied = Boolean(copyResult && copyResult.success);
+      } catch (clipboardError) {
+        // Non-fatal; saving succeeded even if clipboard copy fails
+        console.warn("Copy to clipboard failed after save", clipboardError);
+      }
+
+      const suffix = copied ? " and copied to clipboard." : ".";
+      setStatus(`Saved to ${result.filePath}${suffix}`, "success", 6000);
     }
   } catch (error) {
     console.error("Failed to save image", error);
@@ -1668,7 +1693,21 @@ const bindEvents = () => {
   elements.backgroundColorInput?.addEventListener("input", (event) => {
     state.backgroundColor = event.target.value;
     notifyVisualConfigChanged();
+    syncColorInputsFromState();
     scheduleRender();
+  });
+
+  elements.colorModeHexBtn?.addEventListener("click", () => setColorInputMode("hex"));
+  elements.colorModeRgbBtn?.addEventListener("click", () => setColorInputMode("rgb"));
+  elements.colorModeHslBtn?.addEventListener("click", () => setColorInputMode("hsl"));
+
+  let colorInputDebounce = 0;
+  elements.colorValueInput?.addEventListener("input", (e) => {
+    const value = e.target.value;
+    clearTimeout(colorInputDebounce);
+    colorInputDebounce = window.setTimeout(() => {
+      setBackgroundColorFromText(value);
+    }, 120);
   });
 
   elements.paddingSlider?.addEventListener("input", (event) => {
@@ -1787,6 +1826,9 @@ const init = () => {
   if (elements.backgroundColorInput?.value) {
     state.backgroundColor = elements.backgroundColorInput.value;
   }
+
+  updateColorModeControls();
+  syncColorInputsFromState();
 
   if (elements.shadowToggle) {
     state.withShadow = Boolean(elements.shadowToggle.checked);
