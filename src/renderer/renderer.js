@@ -1,3 +1,5 @@
+import { initializeRecordingController } from "./recording/controller.js";
+
 const api = window.cleanShot;
 
 const state = {
@@ -63,6 +65,54 @@ const elements = {
   desktopImportControl: document.getElementById("desktopImportControl"),
   desktopImportBtn: document.getElementById("desktopImportBtn"),
   desktopImportInput: document.getElementById("desktopImportInput"),
+};
+
+let recordingController = null;
+
+const visualStateListeners = new Set();
+
+const getVisualConfigSnapshot = () => {
+  const desktopImageEntry =
+    state.backgroundDesktopId && state.desktopImages.has(state.backgroundDesktopId)
+      ? state.desktopImages.get(state.backgroundDesktopId)
+      : null;
+
+  return {
+    backgroundMode: state.backgroundMode,
+    backgroundColor: state.backgroundColor,
+    padding: state.padding,
+    withShadow: state.withShadow,
+    customImage: state.customImage,
+    customImageName: state.customImageName,
+    desktopImage: desktopImageEntry?.image ?? null,
+    desktopImageId: state.backgroundDesktopId,
+    screenshotImage: state.screenshotImage,
+  };
+};
+
+const notifyVisualConfigChanged = () => {
+  const snapshot = getVisualConfigSnapshot();
+  visualStateListeners.forEach((listener) => {
+    try {
+      listener(snapshot);
+    } catch (error) {
+      console.warn("Visual state listener failed", error);
+    }
+  });
+};
+
+window.cleanShotVisualState = {
+  getSnapshot: getVisualConfigSnapshot,
+  subscribe(listener) {
+    if (typeof listener !== "function") {
+      return () => {};
+    }
+    visualStateListeners.add(listener);
+    listener(getVisualConfigSnapshot());
+    return () => {
+      visualStateListeners.delete(listener);
+    };
+  },
 };
 
 const getReadableSourceName = (source) => {
@@ -234,6 +284,7 @@ const applySavedCustomBackground = async (id) => {
   state.customImageName = entry.name || "Custom background";
   elements.imageNameLabel.textContent = state.customImageName;
   setActiveCustomBackground(entry.id);
+  notifyVisualConfigChanged();
 
   if (state.backgroundMode !== "image") {
     await handleBackgroundModeChange("image");
@@ -449,6 +500,7 @@ const setDesktopBackgroundById = (id) => {
   const index = state.desktopGalleryOrder.indexOf(id);
   state.desktopGalleryIndex = index >= 0 ? index : 0;
   updateDesktopGalleryControls();
+  notifyVisualConfigChanged();
   return true;
 };
 
@@ -1090,6 +1142,9 @@ const applyCaptureResult = async (capture, options = {}) => {
     options.sourceId === undefined ? capture.id ?? null : options.sourceId;
 
   state.selectedSourceId = sourceId;
+  if (recordingController?.setActiveSource) {
+    recordingController.setActiveSource(sourceId);
+  }
   state.selectedCapture = capture;
   state.screenshotImage = image;
 
@@ -1120,6 +1175,7 @@ const handleBackgroundModeChange = async (mode, options = {}) => {
   }
 
   state.backgroundMode = mode;
+  notifyVisualConfigChanged();
   updateSegmentControls();
   updateBackgroundFields();
 
@@ -1372,6 +1428,7 @@ const handleCustomImageSelection = async (event) => {
 
     elements.imageNameLabel.textContent =
       state.customImageName || "Custom image";
+    notifyVisualConfigChanged();
 
     if (state.backgroundMode !== "image") {
       await handleBackgroundModeChange("image");
@@ -1610,6 +1667,7 @@ const bindEvents = () => {
 
   elements.backgroundColorInput?.addEventListener("input", (event) => {
     state.backgroundColor = event.target.value;
+    notifyVisualConfigChanged();
     scheduleRender();
   });
 
@@ -1617,12 +1675,14 @@ const bindEvents = () => {
     const value = Number.parseInt(event.target.value, 10);
     state.padding = value;
     elements.paddingValueLabel.textContent = `${value} px`;
+    notifyVisualConfigChanged();
     scheduleRender();
   });
 
   elements.shadowToggle?.addEventListener("change", (event) => {
     state.withShadow = Boolean(event.target.checked);
     syncShadowSwitch();
+    notifyVisualConfigChanged();
     scheduleRender();
   });
 
@@ -1688,6 +1748,9 @@ const loadSources = async (options = {}) => {
     const sources = await api.listSources();
     state.sources = sources;
     renderSourceList();
+    if (recordingController?.syncSources) {
+      recordingController.syncSources(sources);
+    }
     if (!silent) {
       setStatus(`Found ${sources.length} capture sources.`);
     }
@@ -1733,6 +1796,12 @@ const init = () => {
   updateBackgroundFields();
   updateSegmentControls();
   bindEvents();
+  recordingController = initializeRecordingController({
+    api,
+    previewCanvas: elements.previewCanvas,
+    previewStage: elements.previewStage,
+    onStatus: setStatus,
+  });
   loadSources();
   loadCustomBackgrounds();
 };

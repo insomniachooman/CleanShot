@@ -61,6 +61,12 @@ const SUPPORTED_CUSTOM_BACKGROUND_MIME = new Map([
   ["image/jpeg", ".jpg"],
   ["image/webp", ".webp"],
 ]);
+const VIDEO_MIME_TO_EXTENSION = new Map([
+  ["video/webm;codecs=vp9", ".webm"],
+  ["video/webm;codecs=vp8", ".webm"],
+  ["video/webm", ".webm"],
+  ["video/mp4", ".mp4"],
+]);
 
 const resolveRendererFile = (filename) =>
   path.join(__dirname, "../renderer", filename);
@@ -854,6 +860,64 @@ const saveImageToDisk = async ({ dataURL, defaultPath }) => {
   return { canceled: false, filePath };
 };
 
+const saveVideoToDisk = async ({ data, mimeType, defaultPath }) => {
+  if (!data) {
+    throw new Error("Missing video payload.");
+  }
+
+  let buffer = null;
+  if (Buffer.isBuffer(data)) {
+    buffer = data;
+  } else if (ArrayBuffer.isView(data)) {
+    buffer = Buffer.from(data.buffer, data.byteOffset, data.byteLength);
+  } else if (data instanceof ArrayBuffer) {
+    buffer = Buffer.from(new Uint8Array(data));
+  } else if (Array.isArray(data)) {
+    buffer = Buffer.from(data);
+  } else if (typeof data === "string") {
+    buffer = Buffer.from(data, "base64");
+  }
+
+  if (!buffer) {
+    throw new Error("Unable to normalize video payload.");
+  }
+
+  const extension = VIDEO_MIME_TO_EXTENSION.get(mimeType) || ".webm";
+  const sanitizedDefault =
+    typeof defaultPath === "string" && defaultPath.trim()
+      ? defaultPath.trim().replace(/[<>:"/\\|?*]/g, "_")
+      : "";
+  const hasExtension = sanitizedDefault
+    ? Boolean(path.extname(sanitizedDefault))
+    : false;
+  const suggestedName = sanitizedDefault
+    ? hasExtension
+      ? sanitizedDefault
+      : `${sanitizedDefault}${extension}`
+    : `CleanShot Recording ${new Date()
+        .toISOString()
+        .replace(/[:.]/g, "-")}${extension}`;
+
+  const filters =
+    extension === ".mp4"
+      ? [{ name: "MP4 Video", extensions: ["mp4"] }]
+      : [{ name: "WebM Video", extensions: ["webm"] }];
+
+  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+    title: "Save Recording",
+    defaultPath: suggestedName,
+    filters,
+  });
+
+  if (canceled || !filePath) {
+    return { canceled: true };
+  }
+
+  await fs.writeFile(filePath, buffer);
+
+  return { canceled: false, filePath };
+};
+
 const openImageFromDisk = async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
     title: "Import Image",
@@ -984,6 +1048,10 @@ const registerIpcHandlers = () => {
 
   ipcMain.handle("file:save-image", async (_event, payload) => {
     return saveImageToDisk(payload);
+  });
+
+  ipcMain.handle("file:save-video", async (_event, payload = {}) => {
+    return saveVideoToDisk(payload);
   });
 
   ipcMain.handle("file:open-image", async () => {

@@ -137,6 +137,17 @@ select {
   transform: scale(0.98);
 }
 
+.ghost-btn.danger {
+  border-color: rgba(249, 112, 112, 0.4);
+  color: #f97c7c;
+}
+
+.ghost-btn.danger:hover {
+  background: rgba(249, 112, 112, 0.12);
+  border-color: rgba(249, 112, 112, 0.58);
+  color: #ffdede;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: 280px 1fr;
@@ -230,7 +241,7 @@ select {
   inset: 0;
   border-radius: inherit;
   border: var(--border-size) solid transparent;
-  pointer-events: none;
+  pointer-events: auto;
   transition: border-color 0.2s ease;
 }
 
@@ -356,6 +367,52 @@ select {
   background: transparent;
 }
 
+.recording-stage {
+  position: absolute;
+  inset: 12px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.recording-stage:not(.is-hidden) {
+  display: flex;
+}
+
+#recordingCanvas {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 14px 32px rgba(9, 11, 30, 0.45);
+  background: transparent;
+  pointer-events: auto;
+}
+
+.preview-stage[data-recording="true"] #previewCanvas {
+  display: none !important;
+}
+
+.preview-stage[data-recording="true"] .preview-placeholder,
+.preview-stage[data-recording="true"] .preview-loading {
+  display: none !important;
+}
+
+.cursor-zoom-indicator {
+  position: fixed;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin: -16px 0 0 -16px;
+  border: 2px solid rgba(128, 140, 255, 0.8);
+  background: rgba(128, 140, 255, 0.22);
+  box-shadow: 0 0 18px rgba(128, 140, 255, 0.45);
+  opacity: 0;
+  transition: opacity 140ms ease;
+  pointer-events: auto;
+  z-index: 12;
+}
+
 .preview-placeholder {
   max-width: 460px;
   text-align: center;
@@ -425,6 +482,136 @@ select {
 .control-block header p {
   margin: 6px 0 0;
   font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.select-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.select-field select {
+  appearance: none;
+  background: rgba(13, 16, 30, 0.6);
+  border: 1px solid rgba(118, 131, 177, 0.22);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--text-primary);
+  font-weight: 500;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.select-field select:focus {
+  outline: none;
+  border-color: rgba(129, 141, 255, 0.85);
+  box-shadow: 0 0 0 2px rgba(129, 141, 255, 0.2);
+}
+
+.radio-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 18px 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(118, 131, 177, 0.18);
+  background: rgba(11, 15, 35, 0.35);
+}
+
+.radio-field legend {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.radio-field label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.radio-field input[type="radio"] {
+  accent-color: #909eff;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin: 18px 0;
+}
+
+.number-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.number-field-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(118, 131, 177, 0.22);
+  background: rgba(13, 16, 30, 0.6);
+  padding: 6px 10px;
+}
+
+.number-field-control input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.number-field-control input:focus {
+  outline: none;
+}
+
+.number-field-control .suffix {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+}
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.checkbox-grid label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.checkbox-grid input[type="checkbox"] {
+  accent-color: #909eff;
+}
+
+.recording-status {
+  margin-top: 12px;
+  min-height: 16px;
+  font-size: 12px;
   color: var(--text-secondary);
 }
 

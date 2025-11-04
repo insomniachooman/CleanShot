@@ -1,161 +1,111 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CleanShot Studio</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <div class="app-shell">
-      <header class="top-bar">
-        <div class="brand">
-          <div class="brand-mark">CS</div>
-          <div class="brand-copy">
-            <h1>CleanShot Studio</h1>
-            <p>Craft refined window mockups in seconds</p>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CleanShot Studio</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="app-shell">
+    <header class="top-bar">
+      <div class="brand">
+        <div class="brand-mark">CS</div>
+        <div class="brand-copy">
+          <h1>CleanShot Studio</h1>
+          <p>Craft refined window mockups in seconds</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="primary-btn" id="areaCaptureBtn">
+          <span>New Capture</span>
+        </button>
+        <button class="ghost-btn" id="importImageBtn">
+          <span>Import Image...</span>
+        </button>
+        <button class="ghost-btn" id="refreshSourcesBtn">
+          <span>Refresh</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="sources-panel">
+        <div class="panel-header">
+          <h2>Windows &amp; Displays</h2>
+          <div class="subtitle">Pick a window to start editing</div>
+          <div class="search-box">
+            <input type="search" id="sourceFilterInput" placeholder="Search for a window or app..."
+              autocomplete="off" />
           </div>
         </div>
-        <div class="top-actions">
-          <button class="primary-btn" id="areaCaptureBtn">
-            <span>New Capture</span>
-          </button>
-          <button class="ghost-btn" id="importImageBtn">
-            <span>Import Image...</span>
-          </button>
-          <button class="ghost-btn" id="refreshSourcesBtn">
-            <span>Refresh</span>
-          </button>
+        <div class="sources-scroll" id="sourceList" aria-live="polite"></div>
+      </aside>
+
+      <section class="editor-panel">
+        <div class="preview-card" id="previewCard">
+          <div class="preview-stage">
+            <canvas id="previewCanvas" aria-label="Screenshot preview"></canvas>
+            <div class="recording-stage is-hidden" id="recordingStage" aria-hidden="true">
+              <canvas id="recordingCanvas" aria-label="Recording preview"></canvas>
+              <div class="cursor-zoom-indicator" id="cursorZoomIndicator"></div>
+              <video id="recordingSourceVideo" playsinline muted hidden></video>
+            </div>
+            <div class="preview-placeholder" id="previewPlaceholder">
+              <h3>Capture a window</h3>
+              <p>
+                Pick a window or display on the left to generate a high fidelity
+                screenshot, then refine the composition here.
+              </p>
+            </div>
+            <div class="preview-loading" id="previewLoading">
+              <div class="spinner"></div>
+              <span>Capturing window...</span>
+            </div>
+          </div>
         </div>
-      </header>
 
-      <main class="workspace">
-        <aside class="sources-panel">
-          <div class="panel-header">
-            <h2>Windows &amp; Displays</h2>
-            <div class="subtitle">Pick a window to start editing</div>
-            <div class="search-box">
-              <input
-                type="search"
-                id="sourceFilterInput"
-                placeholder="Search for a window or app..."
-                autocomplete="off"
-              />
+        <div class="control-grid">
+          <section class="control-block">
+            <header>
+              <h3>Background</h3>
+              <p>Choose how the canvas around your window should look.</p>
+            </header>
+            <div class="segment-control" role="radiogroup">
+              <button class="segment" id="bgTransparentBtn" data-mode="transparent" role="radio" aria-checked="false">
+                Transparent
+              </button>
+              <button class="segment active" id="bgColorBtn" data-mode="color" role="radio" aria-checked="true">
+                Solid
+              </button>
+              <button class="segment" id="bgDesktopBtn" data-mode="desktop" role="radio" aria-checked="false">
+                Desktop
+              </button>
+              <button class="segment" id="bgImageBtn" data-mode="image" role="radio" aria-checked="false">
+                Custom
+              </button>
             </div>
-          </div>
-          <div class="sources-scroll" id="sourceList" aria-live="polite"></div>
-        </aside>
 
-        <section class="editor-panel">
-          <div class="preview-card" id="previewCard">
-            <div class="preview-stage">
-              <canvas id="previewCanvas" aria-label="Screenshot preview"></canvas>
-              <div class="preview-placeholder" id="previewPlaceholder">
-                <h3>Capture a window</h3>
-                <p>
-                  Pick a window or display on the left to generate a high fidelity
-                  screenshot, then refine the composition here.
-                </p>
-              </div>
-              <div class="preview-loading" id="previewLoading">
-                <div class="spinner"></div>
-                <span>Capturing window...</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="control-grid">
-            <section class="control-block">
-              <header>
-                <h3>Background</h3>
-                <p>Choose how the canvas around your window should look.</p>
-              </header>
-              <div class="segment-control" role="radiogroup">
-                <button
-                  class="segment"
-                  id="bgTransparentBtn"
-                  data-mode="transparent"
-                  role="radio"
-                  aria-checked="false"
-                >
-                  Transparent
-                </button>
-                <button
-                  class="segment active"
-                  id="bgColorBtn"
-                  data-mode="color"
-                  role="radio"
-                  aria-checked="true"
-                >
-                  Solid
-                </button>
-                <button
-                  class="segment"
-                  id="bgDesktopBtn"
-                  data-mode="desktop"
-                  role="radio"
-                  aria-checked="false"
-                >
-                  Desktop
-                </button>
-                <button
-                  class="segment"
-                  id="bgImageBtn"
-                  data-mode="image"
-                  role="radio"
-                  aria-checked="false"
-                >
-                  Custom
-                </button>
-              </div>
-
-            <div
-              class="desktop-gallery-controls is-hidden"
-              id="desktopGalleryControls"
-            >
-              <button
-                class="gallery-nav-btn"
-                id="desktopPrevBtn"
-                type="button"
-                aria-label="Previous wallpaper"
-              >
+            <div class="desktop-gallery-controls is-hidden" id="desktopGalleryControls">
+              <button class="gallery-nav-btn" id="desktopPrevBtn" type="button" aria-label="Previous wallpaper">
                 <span aria-hidden="true">&larr;</span>
               </button>
-              <div
-                class="desktop-gallery-label"
-                id="desktopGalleryLabel"
-                aria-live="polite"
-              >
+              <div class="desktop-gallery-label" id="desktopGalleryLabel" aria-live="polite">
                 Windows wallpaper
               </div>
-              <button
-                class="gallery-nav-btn"
-                id="desktopNextBtn"
-                type="button"
-                aria-label="Next wallpaper"
-              >
+              <button class="gallery-nav-btn" id="desktopNextBtn" type="button" aria-label="Next wallpaper">
                 <span aria-hidden="true">&rarr;</span>
               </button>
             </div>
 
-            <div
-              class="desktop-import-control is-hidden"
-              id="desktopImportControl"
-            >
-              <button
-                class="ghost-btn"
-                id="desktopImportBtn"
-                type="button"
-              >
+            <div class="desktop-import-control is-hidden" id="desktopImportControl">
+              <button class="ghost-btn" id="desktopImportBtn" type="button">
                 Import backgrounds...
               </button>
-              <input
-                type="file"
-                id="desktopImportInput"
-                accept="image/png,image/jpeg,image/webp,image/bmp,image/jfif"
-                multiple
-                hidden
-              />
+              <input type="file" id="desktopImportInput" accept="image/png,image/jpeg,image/webp,image/bmp,image/jfif"
+                multiple hidden />
             </div>
 
             <div class="background-controls">
@@ -164,77 +114,165 @@
                 <input type="color" id="backgroundColorInput" value="#0f172a" />
               </label>
 
-                <div class="upload-field" id="imagePickerField">
-                  <div class="details">
-                    <strong>Custom artwork</strong>
-                    <span id="imageNameLabel">Use a high resolution image</span>
-                  </div>
-                  <button class="ghost-btn" id="chooseImageBtn">Browse...</button>
-                  <input
-                    type="file"
-                    id="backgroundImageInput"
-                    accept="image/png,image/jpeg,image/webp"
-                    hidden
-                  />
+              <div class="upload-field" id="imagePickerField">
+                <div class="details">
+                  <strong>Custom artwork</strong>
+                  <span id="imageNameLabel">Use a high resolution image</span>
                 </div>
-                <div
-                  class="saved-backgrounds is-hidden"
-                  id="savedBackgroundsSection"
-                >
-                  <strong>Saved backgrounds</strong>
-                  <div
-                    class="saved-backgrounds-list"
-                    id="savedBackgroundsList"
-                    role="listbox"
-                    aria-label="Saved custom backgrounds"
-                  ></div>
-                </div>
+                <button class="ghost-btn" id="chooseImageBtn">Browse...</button>
+                <input type="file" id="backgroundImageInput" accept="image/png,image/jpeg,image/webp" hidden />
               </div>
-            </section>
-
-            <section class="control-block">
-              <header>
-                <h3>Canvas</h3>
-                <p>Dial in spacing and depth for the final export.</p>
-              </header>
-              <div class="slider-field">
-                <label for="paddingSlider">
-                  <span>Padding</span>
-                  <span id="paddingValueLabel">80 px</span>
-                </label>
-                <input
-                  type="range"
-                  id="paddingSlider"
-                  min="24"
-                  max="320"
-                  value="80"
-                />
+              <div class="saved-backgrounds is-hidden" id="savedBackgroundsSection">
+                <strong>Saved backgrounds</strong>
+                <div class="saved-backgrounds-list" id="savedBackgroundsList" role="listbox"
+                  aria-label="Saved custom backgrounds"></div>
               </div>
-
-              <div class="toggle-field">
-                <label for="shadowToggle">
-                  <span>Shadow</span>
-                </label>
-                <label class="switch">
-                  <input type="checkbox" id="shadowToggle" checked />
-                  <span class="handle"></span>
-                </label>
-              </div>
-            </section>
-          </div>
-
-          <footer class="footer-actions">
-            <div class="status" id="statusMessage" role="status"></div>
-            <div class="action-buttons">
-              <button class="primary-btn" id="saveImageBtn" disabled>
-                Export PNG
-              </button>
             </div>
-          </footer>
-        </section>
-      </main>
-    </div>
+          </section>
 
-    <script type="module" src="renderer.js"></script>
-  </body>
+          <section class="control-block">
+            <header>
+              <h3>Canvas</h3>
+              <p>Dial in spacing and depth for the final export.</p>
+            </header>
+            <div class="slider-field">
+              <label for="paddingSlider">
+                <span>Padding</span>
+                <span id="paddingValueLabel">80 px</span>
+              </label>
+              <input type="range" id="paddingSlider" min="24" max="320" value="80" />
+            </div>
+
+            <div class="toggle-field">
+              <label for="shadowToggle">
+                <span>Shadow</span>
+              </label>
+              <label class="switch">
+                <input type="checkbox" id="shadowToggle" checked />
+                <span class="handle"></span>
+              </label>
+            </div>
+          </section>
+
+          <section class="control-block">
+            <header>
+              <h3>Recording</h3>
+              <p>Configure cursor auto-zoom for screen recordings.</p>
+            </header>
+
+            <label class="select-field" for="recordingSourceSelect">
+              <span>Capture Source</span>
+              <select id="recordingSourceSelect">
+                <option value="">Choose a source to record</option>
+              </select>
+            </label>
+
+            <div class="toggle-field">
+              <label for="cursorAutoZoomToggle">
+                <span>Enable cursor auto-zoom</span>
+              </label>
+              <label class="switch">
+                <input type="checkbox" id="cursorAutoZoomToggle" checked />
+                <span class="handle"></span>
+              </label>
+            </div>
+
+            <fieldset class="radio-field" role="radiogroup" aria-labelledby="cursorZoomModeLabel">
+              <legend id="cursorZoomModeLabel">Zoom Behavior</legend>
+              <label>
+                <input type="radio" name="cursorZoomMode" value="click_only" checked />
+                Zoom on click only
+              </label>
+              <label>
+                <input type="radio" name="cursorZoomMode" value="follow_cursor" />
+                Follow cursor continuously
+              </label>
+              <label>
+                <input type="radio" name="cursorZoomMode" value="hybrid" />
+                Hybrid (follow + click)
+              </label>
+            </fieldset>
+
+            <div class="slider-field">
+              <label for="cursorZoomLevelSlider">
+                <span>Zoom Level</span>
+                <span id="cursorZoomLevelValue">2.0x</span>
+              </label>
+              <input type="range" id="cursorZoomLevelSlider" min="1" max="3" step="0.1" value="2" />
+            </div>
+
+            <div class="field-row">
+              <label class="number-field" for="cursorZoomDurationInput">
+                <span>Animation Duration</span>
+                <div class="number-field-control">
+                  <input type="number" id="cursorZoomDurationInput" min="200" max="1000" step="50" value="400" />
+                  <span class="suffix">ms</span>
+                </div>
+              </label>
+              <label class="number-field" for="cursorZoomHoldInput">
+                <span>Hold After Click</span>
+                <div class="number-field-control">
+                  <input type="number" id="cursorZoomHoldInput" min="0" max="4000" step="50" value="800" />
+                  <span class="suffix">ms</span>
+                </div>
+              </label>
+            </div>
+
+            <label class="select-field" for="cursorZoomEasing">
+              <span>Easing</span>
+              <select id="cursorZoomEasing"></select>
+            </label>
+
+            <div class="slider-field">
+              <label for="cursorFollowSensitivitySlider">
+                <span>Follow Sensitivity</span>
+                <span id="cursorFollowSensitivityValue">0.70</span>
+              </label>
+              <input type="range" id="cursorFollowSensitivitySlider" min="0.1" max="1" step="0.05" value="0.7" />
+            </div>
+
+            <label class="number-field" for="cursorDeadZoneInput">
+              <span>Dead Zone Radius</span>
+              <div class="number-field-control">
+                <input type="number" id="cursorDeadZoneInput" min="0" max="600" step="10" value="100" />
+                <span class="suffix">px</span>
+              </div>
+            </label>
+
+            <div class="checkbox-grid">
+              <label>
+                <input type="checkbox" id="cursorZoomDetectElementsToggle" checked />
+                Zoom on UI elements
+              </label>
+              <label>
+                <input type="checkbox" id="cursorZoomIndicatorToggle" />
+                Show zoom indicator in preview
+              </label>
+            </div>
+
+            <div class="recording-status" id="recordingStatus" aria-live="polite"></div>
+          </section>
+        </div>
+
+        <footer class="footer-actions">
+          <div class="status" id="statusMessage" role="status"></div>
+          <div class="action-buttons">
+            <button class="ghost-btn" id="startRecordingBtn" disabled>
+              Start Recording
+            </button>
+            <button class="ghost-btn danger" id="stopRecordingBtn" disabled>
+              Stop Recording
+            </button>
+            <button class="primary-btn" id="saveImageBtn" disabled>
+              Export PNG
+            </button>
+          </div>
+        </footer>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="renderer.js"></script>
+</body>
+
 </html>

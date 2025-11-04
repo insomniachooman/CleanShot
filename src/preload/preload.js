@@ -31,6 +31,9 @@ contextBridge.exposeInMainWorld("cleanShot", {
   saveImage(payload) {
     return safeInvoke("file:save-image", payload);
   },
+  saveVideo(payload) {
+    return safeInvoke("file:save-video", payload);
+  },
   openImage() {
     return safeInvoke("file:open-image");
   },
